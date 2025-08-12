@@ -13,3 +13,11 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+
+// WinHttp dependency
+#include <winhttp.h>
+#include <strsafe.h>
+#pragma comment(lib, "winhttp.lib")
+
+// Function prototype for ErrorExit
+void ErrorExit(LPTSTR lpszFunction);

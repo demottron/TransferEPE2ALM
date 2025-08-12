@@ -27,6 +27,21 @@
     <ClInclude Include="TransferEPE2ALM.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="enums.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="enums_ref.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="globals.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="winhttp_link.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="error_exit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TransferEPE2ALM.rc">
@@ -45,5 +60,44 @@
     <ClCompile Include="TransferEPE2ALM.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ALM_init.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="end_Program.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Get_ALM_Info.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Get_LRE_Extended.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Get_LRE_Info.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="initialize_Program.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="POST_test_instance_data.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pttw_HTTP_functions.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pttw_util_functions.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PUT_run_data.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="registry_access.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RunLogic.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
 </Project>

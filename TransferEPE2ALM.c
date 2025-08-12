@@ -1,23 +1,65 @@
 // TransferEPE2ALM.c : Defines the entry point for the application.
 //
 
+#include <windows.h>
+#include <strsafe.h>
+#include <winhttp.h>
+#include "resource.h"
 #include "framework.h"
 #include "TransferEPE2ALM.h"
+
+// Add pragma to link with WinHttp library
+#pragma comment(lib, "winhttp.lib")
 
 #define MAX_LOADSTRING 100
 
 // Global Variables:
-HINSTANCE hInst;                                // current instance
-WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
-WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+static HINSTANCE hInst;                                // current instance
+static WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
+static WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
 // Forward declarations
-ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
-LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    LoginDialogProc(HWND, UINT, WPARAM, LPARAM);
-BOOL                ShowLoginDialog(HWND hwndParent);
+static ATOM                MyRegisterClass(HINSTANCE hInstance);
+static BOOL                InitInstance(HINSTANCE, int);
+static LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
+static INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+static INT_PTR CALLBACK    LoginDialogProc(HWND, UINT, WPARAM, LPARAM);
+static BOOL                ShowLoginDialog(HWND hwndParent);
+
+/*
+// ErrorExit implementation
+void ErrorExit(LPTSTR lpszFunction) 
+{ 
+    // Retrieve the system error message for the last-error code
+    LPVOID lpMsgBuf;
+    LPVOID lpDisplayBuf;
+    DWORD dw = GetLastError(); 
+
+    FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        dw,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR) &lpMsgBuf,
+        0, NULL );
+
+    // Display the error message
+    lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT, 
+        (lstrlen((LPCTSTR)lpMsgBuf) + lstrlen((LPCTSTR)lpszFunction) + 40) * sizeof(TCHAR)); 
+    
+    StringCchPrintf((LPTSTR)lpDisplayBuf, 
+        LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+        TEXT("%s failed with error %d: %s"), 
+        lpszFunction, dw, lpMsgBuf); 
+    
+    MessageBox(NULL, (LPCTSTR)lpDisplayBuf, TEXT("Error"), MB_OK); 
+
+    LocalFree(lpMsgBuf);
+    LocalFree(lpDisplayBuf);
+}
+*/
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -58,12 +100,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     return (int)msg.wParam;
 }
 
-ATOM MyRegisterClass(HINSTANCE hInstance)
+static ATOM MyRegisterClass(HINSTANCE hInstance)
 {
     WNDCLASSEXW wcex;
+    ZeroMemory(&wcex, sizeof(wcex));
 
     wcex.cbSize = sizeof(WNDCLASSEX);
-
     wcex.style          = CS_HREDRAW | CS_VREDRAW;
     wcex.lpfnWndProc    = WndProc;
     wcex.cbClsExtra     = 0;
@@ -79,7 +121,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassExW(&wcex);
 }
 
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
+static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance;  // Store instance handle in our global variable
 
@@ -89,7 +131,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
         return FALSE;  // Exit application if login is canceled
     }
 
-    // Only create main window if login was successful
     HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
@@ -104,43 +145,45 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     return TRUE;
 }
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    int wmId;
+    PAINTSTRUCT ps;
+    HDC hdc;
+
     switch (message)
     {
     case WM_COMMAND:
+        wmId = LOWORD(wParam);
+        switch (wmId)
         {
-            int wmId = LOWORD(wParam);
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
+        case IDM_ABOUT:
+            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            break;
+        case IDM_EXIT:
+            DestroyWindow(hWnd);
+            break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
         }
         break;
+
     case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            EndPaint(hWnd, &ps);
-        }
+        hdc = BeginPaint(hWnd, &ps);
+        EndPaint(hWnd, &ps);
         break;
+
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
 }
 
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+static INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
@@ -159,23 +202,23 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-INT_PTR CALLBACK LoginDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+static INT_PTR CALLBACK LoginDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    UNREFERENCED_PARAMETER(lParam);
+    RECT rc;
+    int xPos, yPos;
     WCHAR username[256];
     WCHAR password[256];
+    
+    UNREFERENCED_PARAMETER(lParam);
     
     switch (message)
     {
     case WM_INITDIALOG:
         // Center the dialog on the screen
-        {
-            RECT rc;
-            GetWindowRect(hDlg, &rc);
-            int xPos = (GetSystemMetrics(SM_CXSCREEN) - (rc.right - rc.left)) / 2;
-            int yPos = (GetSystemMetrics(SM_CYSCREEN) - (rc.bottom - rc.top)) / 2;
-            SetWindowPos(hDlg, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-        }
+        GetWindowRect(hDlg, &rc);
+        xPos = (GetSystemMetrics(SM_CXSCREEN) - (rc.right - rc.left)) / 2;
+        yPos = (GetSystemMetrics(SM_CYSCREEN) - (rc.bottom - rc.top)) / 2;
+        SetWindowPos(hDlg, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
         return (INT_PTR)TRUE;
 
     case WM_COMMAND:
@@ -199,8 +242,12 @@ INT_PTR CALLBACK LoginDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
     return (INT_PTR)FALSE;
 }
 
-BOOL ShowLoginDialog(HWND hwndParent)
+static BOOL ShowLoginDialog(HWND hwndParent)
 {
+    DWORD error;
+    WCHAR errorMsg[256];
+    INT_PTR result;
+
     // Make sure hInst is set
     if (!hInst)
     {
@@ -209,14 +256,13 @@ BOOL ShowLoginDialog(HWND hwndParent)
     }
 
     // Show the login dialog modally
-    INT_PTR result = DialogBoxW(hInst, MAKEINTRESOURCE(IDD_LOGIN), hwndParent, LoginDialogProc);
+    result = DialogBoxW(hInst, MAKEINTRESOURCE(IDD_LOGIN), hwndParent, LoginDialogProc);
     
     // Check for dialog creation errors
     if (result == -1)
     {
-        DWORD error = GetLastError();
-        WCHAR errorMsg[256];
-        swprintf(errorMsg, 256, L"Failed to create login dialog. Error code: %d", error);
+        error = GetLastError();
+        _snwprintf_s(errorMsg, _countof(errorMsg), _TRUNCATE, L"Failed to create login dialog. Error code: %lu", error);
         MessageBoxW(NULL, errorMsg, L"Error", MB_OK | MB_ICONERROR);
         return FALSE;
     }

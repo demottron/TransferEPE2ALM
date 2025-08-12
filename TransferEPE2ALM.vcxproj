@@ -124,10 +124,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="enums.h" />
+    <ClInclude Include="enums_ref.h" />
+    <ClInclude Include="error_exit.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="globals.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TransferEPE2ALM.h" />
+    <ClInclude Include="winhttp_link.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TransferEPE2ALM.rc" />
@@ -137,7 +142,22 @@
     <Image Include="TransferEPE2ALM.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ALM_init.c" />
+    <ClCompile Include="end_Program.c" />
+    <ClCompile Include="Get_ALM_Info.c" />
+    <ClCompile Include="Get_LRE_Extended.c" />
+    <ClCompile Include="Get_LRE_Info.c" />
+    <ClCompile Include="initialize_Program.c" />
+    <ClCompile Include="POST_test_instance_data.c" />
+    <ClCompile Include="pttw_HTTP_functions.c" />
+    <ClCompile Include="pttw_util_functions.c" />
+    <ClCompile Include="PUT_run_data.c" />
+    <ClCompile Include="registry_access.c" />
+    <ClCompile Include="RunLogic.c" />
     <ClCompile Include="TransferEPE2ALM.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
