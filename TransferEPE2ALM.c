@@ -24,42 +24,159 @@ static BOOL                InitInstance(HINSTANCE, int);
 static LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 static INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 static INT_PTR CALLBACK    LoginDialogProc(HWND, UINT, WPARAM, LPARAM);
+static INT_PTR CALLBACK    DomainProjectDialogProc(HWND, UINT, WPARAM, LPARAM);
 static BOOL                ShowLoginDialog(HWND hwndParent);
+static BOOL                ShowDomainProjectDialog(HWND hwndParent);
 
-/*
-// ErrorExit implementation
-void ErrorExit(LPTSTR lpszFunction) 
-{ 
-    // Retrieve the system error message for the last-error code
-    LPVOID lpMsgBuf;
-    LPVOID lpDisplayBuf;
-    DWORD dw = GetLastError(); 
-
-    FormatMessage(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-        FORMAT_MESSAGE_FROM_SYSTEM |
-        FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL,
-        dw,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPTSTR) &lpMsgBuf,
-        0, NULL );
-
-    // Display the error message
-    lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT, 
-        (lstrlen((LPCTSTR)lpMsgBuf) + lstrlen((LPCTSTR)lpszFunction) + 40) * sizeof(TCHAR)); 
+// Domain/Project dialog handling
+static INT_PTR CALLBACK DomainProjectDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    HWND hDomainCombo, hProjectCombo;
     
-    StringCchPrintf((LPTSTR)lpDisplayBuf, 
-        LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-        TEXT("%s failed with error %d: %s"), 
-        lpszFunction, dw, lpMsgBuf); 
-    
-    MessageBox(NULL, (LPCTSTR)lpDisplayBuf, TEXT("Error"), MB_OK); 
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        // Center the dialog
+        {
+            RECT rc;
+            int xPos, yPos;
+            GetWindowRect(hDlg, &rc);
+            xPos = (GetSystemMetrics(SM_CXSCREEN) - (rc.right - rc.left)) / 2;
+            yPos = (GetSystemMetrics(SM_CYSCREEN) - (rc.bottom - rc.top)) / 2;
+            SetWindowPos(hDlg, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+        }
+        
+        // Get handles to combo boxes
+        hDomainCombo = GetDlgItem(hDlg, IDC_DOMAIN_COMBO);
+        hProjectCombo = GetDlgItem(hDlg, IDC_PROJECT_COMBO);
+        
+        if (hDomainCombo && hProjectCombo)
+        {
+            // Populate domain combo box
+            SendMessage(hDomainCombo, CB_ADDSTRING, 0, (LPARAM)L"DEPT_OF_VET_AFFAIRS");
+            SendMessage(hDomainCombo, CB_SETCURSEL, 0, 0);
+            
+            // Populate project combo box
+            const WCHAR* projects[] = {
+                L"AMPL_GUI", L"VAPe", L"VIA", L"VIC", L"VIRP",
+                L"Vista_Utility", L"VLM", L"VPL", L"VSA_2016"
+            };
+            
+            for(int i = 0; i < sizeof(projects)/sizeof(projects[0]); i++)
+            {
+                SendMessage(hProjectCombo, CB_ADDSTRING, 0, (LPARAM)projects[i]);
+            }
+            SendMessage(hProjectCombo, CB_SETCURSEL, 0, 0);
+        }
+        
+        return (INT_PTR)TRUE;
 
-    LocalFree(lpMsgBuf);
-    LocalFree(lpDisplayBuf);
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+        {
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
 }
-*/
+
+static BOOL ShowDomainProjectDialog(HWND hwndParent)
+{
+    INT_PTR result = DialogBox(hInst, MAKEINTRESOURCE(IDD_DOMAIN_PROJECT), hwndParent, DomainProjectDialogProc);
+    
+    if (result == -1)
+    {
+        DWORD error = GetLastError();
+        WCHAR errorMsg[256];
+        _snwprintf_s(errorMsg, _countof(errorMsg), _TRUNCATE, 
+            L"Failed to create domain/project dialog. Error code: %lu", error);
+        MessageBoxW(NULL, errorMsg, L"Error", MB_OK | MB_ICONERROR);
+        return FALSE;
+    }
+    
+    return result == IDOK;
+}
+
+// Modified LoginDialogProc with credential check
+static INT_PTR CALLBACK LoginDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    RECT rc;
+    int xPos, yPos;
+    WCHAR username[256];
+    WCHAR password[256];
+    
+    UNREFERENCED_PARAMETER(lParam);
+    
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        // Center the dialog
+        GetWindowRect(hDlg, &rc);
+        xPos = (GetSystemMetrics(SM_CXSCREEN) - (rc.right - rc.left)) / 2;
+        yPos = (GetSystemMetrics(SM_CYSCREEN) - (rc.bottom - rc.top)) / 2;
+        SetWindowPos(hDlg, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+        return (INT_PTR)TRUE;
+
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK)
+        {
+            GetDlgItemText(hDlg, IDC_USERNAME, username, 256);
+            GetDlgItemText(hDlg, IDC_PASSWORD, password, 256);
+            
+            // Check credentials
+            if (wcscmp(username, L"admin") == 0 && wcscmp(password, L"password123") == 0)
+            {
+                // Valid credentials, close login dialog and show domain/project dialog
+                EndDialog(hDlg, IDOK);
+                return ShowDomainProjectDialog(NULL) ? (INT_PTR)TRUE : (INT_PTR)FALSE;
+            }
+            else
+            {
+                // Invalid credentials, show error message
+                MessageBox(hDlg, L"Invalid username or password.\nUsername should be 'admin'\nPassword should be 'password123'", 
+                          L"Authentication Failed", MB_OK | MB_ICONERROR);
+                return (INT_PTR)TRUE;
+            }
+        }
+        else if (LOWORD(wParam) == IDCANCEL)
+        {
+            EndDialog(hDlg, IDCANCEL);
+            return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+static BOOL ShowLoginDialog(HWND hwndParent)
+{
+    DWORD error;
+    WCHAR errorMsg[256];
+    INT_PTR result;
+
+    // Make sure hInst is set
+    if (!hInst)
+    {
+        MessageBoxW(NULL, L"Application instance not initialized", L"Error", MB_OK | MB_ICONERROR);
+        return FALSE;
+    }
+
+    // Show the login dialog modally
+    result = DialogBoxW(hInst, MAKEINTRESOURCE(IDD_LOGIN), hwndParent, LoginDialogProc);
+    
+    // Check for dialog creation errors
+    if (result == -1)
+    {
+        error = GetLastError();
+        _snwprintf_s(errorMsg, _countof(errorMsg), _TRUNCATE, L"Failed to create login dialog. Error code: %lu", error);
+        MessageBoxW(NULL, errorMsg, L"Error", MB_OK | MB_ICONERROR);
+        return FALSE;
+    }
+
+    return result == IDOK;
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -200,72 +317,4 @@ static INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
         break;
     }
     return (INT_PTR)FALSE;
-}
-
-static INT_PTR CALLBACK LoginDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    RECT rc;
-    int xPos, yPos;
-    WCHAR username[256];
-    WCHAR password[256];
-    
-    UNREFERENCED_PARAMETER(lParam);
-    
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        // Center the dialog on the screen
-        GetWindowRect(hDlg, &rc);
-        xPos = (GetSystemMetrics(SM_CXSCREEN) - (rc.right - rc.left)) / 2;
-        yPos = (GetSystemMetrics(SM_CYSCREEN) - (rc.bottom - rc.top)) / 2;
-        SetWindowPos(hDlg, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-        return (INT_PTR)TRUE;
-
-    case WM_COMMAND:
-        switch (LOWORD(wParam))
-        {
-        case IDOK:
-            GetDlgItemText(hDlg, IDC_USERNAME, username, 256);
-            GetDlgItemText(hDlg, IDC_PASSWORD, password, 256);
-            
-            // TODO: Add authentication logic here
-            // For now, just accepting any input
-            EndDialog(hDlg, IDOK);
-            return (INT_PTR)TRUE;
-
-        case IDCANCEL:
-            EndDialog(hDlg, IDCANCEL);
-            return (INT_PTR)TRUE;
-        }
-        break;
-    }
-    return (INT_PTR)FALSE;
-}
-
-static BOOL ShowLoginDialog(HWND hwndParent)
-{
-    DWORD error;
-    WCHAR errorMsg[256];
-    INT_PTR result;
-
-    // Make sure hInst is set
-    if (!hInst)
-    {
-        MessageBoxW(NULL, L"Application instance not initialized", L"Error", MB_OK | MB_ICONERROR);
-        return FALSE;
-    }
-
-    // Show the login dialog modally
-    result = DialogBoxW(hInst, MAKEINTRESOURCE(IDD_LOGIN), hwndParent, LoginDialogProc);
-    
-    // Check for dialog creation errors
-    if (result == -1)
-    {
-        error = GetLastError();
-        _snwprintf_s(errorMsg, _countof(errorMsg), _TRUNCATE, L"Failed to create login dialog. Error code: %lu", error);
-        MessageBoxW(NULL, errorMsg, L"Error", MB_OK | MB_ICONERROR);
-        return FALSE;
-    }
-
-    return result == IDOK;
 }

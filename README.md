@@ -111,3 +111,14 @@ This project is licensed under the appropriate license for your organization - c
 
 * VA Performance Testing Team
 * Micro Focus (now OpenText) for EPE and ALM APIs
+
+case WM_COMMAND:
+    if (LOWORD(wParam) == IDOK)
+    {
+        GetDlgItemText(hDlg, IDC_USERNAME, username, 256);
+        GetDlgItemText(hDlg, IDC_PASSWORD, password, 256);
+        
+        // Close login dialog and show domain/project dialog
+        EndDialog(hDlg, IDOK);
+        return ShowDomainProjectDialog(NULL) ? (INT_PTR)TRUE : (INT_PTR)FALSE;
+    }
