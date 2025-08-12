@@ -29,11 +29,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="TransferEPE2ALM.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="TransferEPE2ALM.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
@@ -45,5 +40,10 @@
     <Image Include="TransferEPE2ALM.ico">
       <Filter>Resource Files</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="TransferEPE2ALM.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

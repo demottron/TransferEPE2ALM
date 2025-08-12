@@ -1,4 +1,4 @@
-// TransferEPE2ALM.cpp : Defines the entry point for the application.
+// TransferEPE2ALM.c : Defines the entry point for the application.
 //
 
 #include "framework.h"
@@ -11,11 +11,13 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
-// Forward declarations of functions included in this code module:
+// Forward declarations
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK    LoginDialogProc(HWND, UINT, WPARAM, LPARAM);
+BOOL                ShowLoginDialog(HWND hwndParent);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -25,25 +27,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    // TODO: Place code here.
-
     // Initialize global strings
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_TRANSFEREPE2ALM, szWindowClass, MAX_LOADSTRING);
-    MyRegisterClass(hInstance);
+    
+    if (!MyRegisterClass(hInstance))
+    {
+        return FALSE;
+    }
 
     // Perform application initialization:
-    if (!InitInstance (hInstance, nCmdShow))
+    if (!InitInstance(hInstance, nCmdShow))
     {
         return FALSE;
     }
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_TRANSFEREPE2ALM));
-
     MSG msg;
 
     // Main message loop:
-    while (GetMessage(&msg, nullptr, 0, 0))
+    while (GetMessage(&msg, NULL, 0, 0))
     {
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
         {
@@ -52,16 +55,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
     }
 
-    return (int) msg.wParam;
+    return (int)msg.wParam;
 }
 
-
-
-//
-//  FUNCTION: MyRegisterClass()
-//
-//  PURPOSE: Registers the window class.
-//
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
     WNDCLASSEXW wcex;
@@ -74,7 +70,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = hInstance;
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_TRANSFEREPE2ALM));
-    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
     wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_TRANSFEREPE2ALM);
     wcex.lpszClassName  = szWindowClass;
@@ -83,44 +79,31 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassExW(&wcex);
 }
 
-//
-//   FUNCTION: InitInstance(HINSTANCE, int)
-//
-//   PURPOSE: Saves instance handle and creates main window
-//
-//   COMMENTS:
-//
-//        In this function, we save the instance handle in a global variable and
-//        create and display the main program window.
-//
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-   hInst = hInstance; // Store instance handle in our global variable
+    hInst = hInstance;  // Store instance handle in our global variable
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+    // Show login dialog first and exit if canceled
+    if (!ShowLoginDialog(NULL))
+    {
+        return FALSE;  // Exit application if login is canceled
+    }
 
-   if (!hWnd)
-   {
-      return FALSE;
-   }
+    // Only create main window if login was successful
+    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+    if (!hWnd)
+    {
+        return FALSE;
+    }
 
-   return TRUE;
+    ShowWindow(hWnd, nCmdShow);
+    UpdateWindow(hWnd);
+
+    return TRUE;
 }
 
-//
-//  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  PURPOSE: Processes messages for the main window.
-//
-//  WM_COMMAND  - process the application menu
-//  WM_PAINT    - Paint the main window
-//  WM_DESTROY  - post a quit message and return
-//
-//
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -128,7 +111,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
-            // Parse the menu selections:
             switch (wmId)
             {
             case IDM_ABOUT:
@@ -146,7 +128,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: Add any drawing code that uses hdc here...
             EndPaint(hWnd, &ps);
         }
         break;
@@ -159,7 +140,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-// Message handler for about box.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
@@ -177,4 +157,69 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK LoginDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+    WCHAR username[256];
+    WCHAR password[256];
+    
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        // Center the dialog on the screen
+        {
+            RECT rc;
+            GetWindowRect(hDlg, &rc);
+            int xPos = (GetSystemMetrics(SM_CXSCREEN) - (rc.right - rc.left)) / 2;
+            int yPos = (GetSystemMetrics(SM_CYSCREEN) - (rc.bottom - rc.top)) / 2;
+            SetWindowPos(hDlg, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+        }
+        return (INT_PTR)TRUE;
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDOK:
+            GetDlgItemText(hDlg, IDC_USERNAME, username, 256);
+            GetDlgItemText(hDlg, IDC_PASSWORD, password, 256);
+            
+            // TODO: Add authentication logic here
+            // For now, just accepting any input
+            EndDialog(hDlg, IDOK);
+            return (INT_PTR)TRUE;
+
+        case IDCANCEL:
+            EndDialog(hDlg, IDCANCEL);
+            return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+BOOL ShowLoginDialog(HWND hwndParent)
+{
+    // Make sure hInst is set
+    if (!hInst)
+    {
+        MessageBoxW(NULL, L"Application instance not initialized", L"Error", MB_OK | MB_ICONERROR);
+        return FALSE;
+    }
+
+    // Show the login dialog modally
+    INT_PTR result = DialogBoxW(hInst, MAKEINTRESOURCE(IDD_LOGIN), hwndParent, LoginDialogProc);
+    
+    // Check for dialog creation errors
+    if (result == -1)
+    {
+        DWORD error = GetLastError();
+        WCHAR errorMsg[256];
+        swprintf(errorMsg, 256, L"Failed to create login dialog. Error code: %d", error);
+        MessageBoxW(NULL, errorMsg, L"Error", MB_OK | MB_ICONERROR);
+        return FALSE;
+    }
+
+    return result == IDOK;
 }
