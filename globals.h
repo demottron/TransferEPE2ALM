@@ -152,6 +152,11 @@ typedef PSTR* PTTW_PARM_LIST;
 PTTW_STRING* ALMserver;									// added 06/10/2025 in support of using registry instead of hardcoded in this header file
 PTTW_STRING* LREserver;									// added 06/10/2025 in support of using registry instead of hardcoded in this header file
 
+//static const WCHAR LREserver[] = L"oitispopspcsvr1.va.gov";
+
+//PTTW_STRING* ALMserver = "oitispopstsalm1.va.gov";									// added 06/10/2025 in support of using registry instead of hardcoded in this header file
+//PTTW_STRING* LREserver = "oitispopspcsvr1.va.gov";									// added 06/10/2025 in support of using registry instead of hardcoded in this header file
+
 void ErrorExit(LPTSTR);
 PSTR pttw_build_restPath(PSTR, PSTR, ...);
 int pttw_check_for_parms(PSTR*, PDWORD);

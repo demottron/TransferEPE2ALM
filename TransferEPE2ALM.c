@@ -7,6 +7,8 @@
 #include "resource.h"
 #include "framework.h"
 #include "TransferEPE2ALM.h"
+#include "globals.h"
+#include "enums_ref.h"
 
 // Add pragma to link with WinHttp library
 #pragma comment(lib, "winhttp.lib")
@@ -27,6 +29,10 @@ static INT_PTR CALLBACK    LoginDialogProc(HWND, UINT, WPARAM, LPARAM);
 static INT_PTR CALLBACK    DomainProjectDialogProc(HWND, UINT, WPARAM, LPARAM);
 static BOOL                ShowLoginDialog(HWND hwndParent);
 static BOOL                ShowDomainProjectDialog(HWND hwndParent);
+
+// External declarations from globals.h and enums_ref.h
+extern char* targetKey;
+extern char* rtype[];  // Array of request type strings
 
 // Domain/Project dialog handling
 static INT_PTR CALLBACK DomainProjectDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -99,13 +105,18 @@ static BOOL ShowDomainProjectDialog(HWND hwndParent)
     return result == IDOK;
 }
 
-// Modified LoginDialogProc with credential check
+// Modified LoginDialogProc to integrate with program authentication
 static INT_PTR CALLBACK LoginDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     RECT rc;
     int xPos, yPos;
     WCHAR username[256];
     WCHAR password[256];
+    static const WCHAR correctUsername[] = L"oithindemotr";
+    static const WCHAR correctPassword[] = L"mercury";
+    PSTR restPath = NULL;
+    PSTR readBuffer = NULL;
+    BOOL authResult = FALSE;
     
     UNREFERENCED_PARAMETER(lParam);
     
@@ -125,17 +136,47 @@ static INT_PTR CALLBACK LoginDialogProc(HWND hDlg, UINT message, WPARAM wParam, 
             GetDlgItemText(hDlg, IDC_USERNAME, username, 256);
             GetDlgItemText(hDlg, IDC_PASSWORD, password, 256);
             
-            // Check credentials
-            if (wcscmp(username, L"admin") == 0 && wcscmp(password, L"password123") == 0)
+            // First check hardcoded credentials
+            if (wcscmp(username, correctUsername) == 0 && wcscmp(password, correctPassword) == 0)
             {
-                // Valid credentials, close login dialog and show domain/project dialog
-                EndDialog(hDlg, IDOK);
-                return ShowDomainProjectDialog(NULL) ? (INT_PTR)TRUE : (INT_PTR)FALSE;
+                // Read from registry
+//                MessageBox(NULL, L"Reading server names from registry...", L"Warning", MB_OK | MB_ICONWARNING);
+                ReadRegistryString(HKEY_CURRENT_USER, SUBKEY, ALMSERVER, &ALMserver);						// get the name of the ALM server
+                ReadRegistryString(HKEY_CURRENT_USER, SUBKEY, LRESERVER, &LREserver);						// get the name of the (now) EPE server
+
+//                MessageBox(NULL, L"Connecting to EPE...", L"Warning", MB_OK | MB_ICONWARNING);
+
+                // Valid credentials, attempt EPE authentication
+                targetKey = LRE_LWSSO_KEY;
+                pttw_register_save_parameter(SETCOOKIE, "LWSSO_COOKIE_KEY", ";", LWSSOIDX, "headers", LAST);
+                restPath = pttw_build_restPath(LREbase, AUTHpoint, LREauth, NULL);
+                
+                // Call EPE authentication endpoint
+                if (restPath != NULL)
+                {
+                    pttw_rest(HTTPscheme, LREserver, restPath, readBuffer, rtype[GET],
+                        HEADERS,
+                            "Authorization: ", LREsecret, CRLF,
+                        ENDHEADER,
+                        LAST);
+                    
+                    free(restPath);
+                    free(readBuffer);
+                    
+                    // Close login dialog and show domain/project dialog
+                    EndDialog(hDlg, IDOK);
+                    return ShowDomainProjectDialog(NULL) ? (INT_PTR)TRUE : (INT_PTR)FALSE;
+                }
+                else
+                {
+                    MessageBox(hDlg, L"Failed to initialize EPE authentication", 
+                             L"Authentication Failed", MB_OK | MB_ICONERROR);
+                    return (INT_PTR)TRUE;
+                }
             }
             else
             {
-                // Invalid credentials, show error message
-                MessageBox(hDlg, L"Invalid username or password.\nUsername should be 'admin'\nPassword should be 'password123'", 
+                MessageBox(hDlg, L"Invalid username or password.\nUsername should be your EPE username\nPassword should be your EPE password.", 
                           L"Authentication Failed", MB_OK | MB_ICONERROR);
                 return (INT_PTR)TRUE;
             }
